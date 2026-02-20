@@ -10,6 +10,8 @@ const ExamManager = () => {
     const [currentExam, setCurrentExam] = useState(null);
     const [uploadedJsonFile, setUploadedJsonFile] = useState(null);
     const [uploadedZipFile, setUploadedZipFile] = useState(null);
+    const [jsonInputKey, setJsonInputKey] = useState(Date.now());
+    const [zipInputKey, setZipInputKey] = useState(Date.now() + 1);
     const [requiredImages, setRequiredImages] = useState([]);
     const [pendingImages, setPendingImages] = useState([]); // Store extracted 
     const [message, setMessage] = useState('');
@@ -44,6 +46,8 @@ const ExamManager = () => {
         setMessage('');
         setUploadedJsonFile(null);
         setUploadedZipFile(null);
+        setJsonInputKey(Date.now());
+        setZipInputKey(Date.now() + 1);
         setRequiredImages([]);
         setPendingImages([]);
     };
@@ -54,6 +58,8 @@ const ExamManager = () => {
         setMessage('');
         setUploadedJsonFile(null);
         setUploadedZipFile(null);
+        setJsonInputKey(Date.now());
+        setZipInputKey(Date.now() + 1);
         setRequiredImages([]);
         setPendingImages([]);
     };
@@ -127,6 +133,7 @@ const ExamManager = () => {
         } else {
             setMessage('Please upload a .json file.');
             setUploadedJsonFile(null);
+            setJsonInputKey(Date.now());
         }
     };
 
@@ -164,8 +171,19 @@ const ExamManager = () => {
                 });
 
                 if (missingImages.length > 0) {
-                    setMessage(`Validation Error: The following images were referenced in the JSON but missing from the ZIP: ${missingImages.join(', ')}`);
+                    setMessage(`Validation Error: The following images were referenced in your JSON but missing from the ZIP: ${missingImages.join(', ')}`);
                     setUploadedZipFile(null);
+                    setZipInputKey(Date.now());
+
+                    // Clear any previous pending refs on failure
+                    if (currentExam?.questions) {
+                        const strippedQuestions = currentExam.questions.map(q => {
+                            const { pendingImageRef, ...rest } = q;
+                            return rest;
+                        });
+                        setCurrentExam(prev => ({ ...prev, questions: strippedQuestions }));
+                    }
+
                     return;
                 }
 
@@ -185,10 +203,12 @@ const ExamManager = () => {
                 console.error("Error processing zip:", error);
                 setMessage('Error reading ZIP file. Ensure it is not corrupted.');
                 setUploadedZipFile(null);
+                setZipInputKey(Date.now());
             }
         } else {
             setMessage('Please upload a .zip file containing your images.');
             setUploadedZipFile(null);
+            setZipInputKey(Date.now());
         }
     };
 
@@ -323,6 +343,8 @@ const ExamManager = () => {
             setIsEditing(false);
             setUploadedJsonFile(null);
             setUploadedZipFile(null);
+            setJsonInputKey(Date.now());
+            setZipInputKey(Date.now() + 1);
             setRequiredImages([]);
             setPendingImages([]);
             setUploadProgress({ isUploading: false, current: 0, total: 0, text: '' });
@@ -393,7 +415,7 @@ const ExamManager = () => {
                             <Upload className={`mx-auto h-10 w-10 mb-2 ${uploadedJsonFile ? 'text-green-500' : 'text-gray-400'}`} />
                             <label className="cursor-pointer block">
                                 <span className={`font-medium ${uploadedJsonFile ? 'text-green-700' : 'text-blue-600 hover:text-blue-800'}`}>Upload exam.json File</span>
-                                <input type="file" className="hidden" accept=".json" onChange={handleJsonUpload} disabled={uploadProgress.isUploading} />
+                                <input key={jsonInputKey} type="file" className="hidden" accept=".json" onChange={handleJsonUpload} disabled={uploadProgress.isUploading} />
                             </label>
                             <p className="text-xs text-gray-500 mt-1">
                                 {uploadedJsonFile ? uploadedJsonFile.name : "Select an exam .json file"}
@@ -402,11 +424,11 @@ const ExamManager = () => {
 
                         {/* Conditional ZIP Upload Box */}
                         {requiredImages.length > 0 && (
-                            <div className={`border-2 border-dashed rounded-lg p-6 text-center transition ${pendingImages.length > 0 ? 'border-green-400 bg-green-50' : 'border-orange-300 bg-orange-50'}`}>
-                                <Upload className={`mx-auto h-10 w-10 mb-2 ${pendingImages.length > 0 ? 'text-green-500' : 'text-orange-400'}`} />
+                            <div className={`border-2 border-dashed rounded-lg p-6 text-center transition ${pendingImages.length > 0 ? 'border-green-400 bg-green-50' : 'border-red-300 bg-red-50'}`}>
+                                <Upload className={`mx-auto h-10 w-10 mb-2 ${pendingImages.length > 0 ? 'text-green-500' : 'text-red-400'}`} />
                                 <label className="cursor-pointer block">
-                                    <span className={`font-medium ${pendingImages.length > 0 ? 'text-green-700' : 'text-orange-600 hover:text-orange-800'}`}>Upload Images .zip File</span>
-                                    <input type="file" className="hidden" accept=".zip" onChange={handleZipUpload} disabled={uploadProgress.isUploading} />
+                                    <span className={`font-medium ${pendingImages.length > 0 ? 'text-green-700' : 'text-red-600 hover:text-red-800'}`}>Upload Images .zip File</span>
+                                    <input key={zipInputKey} type="file" className="hidden" accept=".zip" onChange={handleZipUpload} disabled={uploadProgress.isUploading} />
                                 </label>
                                 <p className="text-xs text-gray-500 mt-1">
                                     {uploadedZipFile ? uploadedZipFile.name : "Select a .zip file"}
@@ -416,7 +438,7 @@ const ExamManager = () => {
                                         ✓ Validated {pendingImages.length} images from ZIP.
                                     </p>
                                 ) : (
-                                    <p className="text-xs text-orange-600 mt-2 font-medium">
+                                    <p className="text-xs text-red-600 mt-2 font-medium">
                                         Waiting for ZIP containing {requiredImages.length} required images.
                                     </p>
                                 )}
@@ -442,8 +464,8 @@ const ExamManager = () => {
                     </div>
                 )}
 
-                <div className="flex justify-between items-center">
-                    <span className={`text-sm ${message.includes('Error') || message.includes('Failed') || message.includes('Invalid') || message.includes('must') || message.includes('required') ? 'text-red-500' : 'text-green-600'}`}>
+                <div className="flex justify-between items-center mt-6">
+                    <span className={`text-sm ${message.includes('Error') || message.includes('Failed') || message.includes('Invalid') || message.includes('must') || message.toLowerCase().includes('waiting for') ? 'text-red-500' : 'text-green-600'}`}>
                         {message}
                     </span>
                     <button
