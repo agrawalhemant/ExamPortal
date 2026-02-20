@@ -48,10 +48,31 @@ const ExamManager = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this exam?')) {
+        if (window.confirm('Are you sure you want to delete this exam? This will also unassign it from all students.')) {
             try {
-                const { error } = await supabase.from('exams').delete().eq('id', id);
-                if (error) throw error;
+                // 1. Delete the exam from exams table
+                const { error: deleteError } = await supabase.from('exams').delete().eq('id', id);
+                if (deleteError) throw deleteError;
+
+                // 2. Unassign from all students
+                // Fetch profiles that have this exam in their assigned_exams array
+                // Supabase JSONB contains operator is `@>`.
+                const { "data": profilesToUpdate, "error": fetchError } = await supabase
+                    .from('profiles')
+                    .select('id, assigned_exams')
+                    .contains('assigned_exams', [id]);
+
+                if (fetchError) {
+                    console.error("Error fetching profiles to unassign exam:", fetchError);
+                } else if (profilesToUpdate && profilesToUpdate.length > 0) {
+                    // Update each profile asynchronously
+                    await Promise.all(profilesToUpdate.map(async (profile) => {
+                        const updatedAssignments = profile.assigned_exams.filter(examId => examId !== id);
+                        await supabase.from('profiles').update({ assigned_exams: updatedAssignments }).eq('id', profile.id);
+                    }));
+                }
+
+                // Update local state
                 setExams(exams.filter(e => e.id !== id));
             } catch (error) {
                 console.error('Error deleting exam:', error);

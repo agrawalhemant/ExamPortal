@@ -8,6 +8,7 @@ const AdminReports = () => {
     const [exams, setExams] = useState([]);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [studentSearch, setStudentSearch] = useState('');
 
     useEffect(() => {
         loadData();
@@ -103,21 +104,31 @@ const AdminReports = () => {
             </div>
 
             <div className="flex gap-6 h-full overflow-hidden">
-                {/* Student List */}
-                <div className="w-1/3 border-r pr-4 overflow-y-auto">
-                    <h3 className="font-semibold text-gray-700 mb-2">Select Student</h3>
-                    <div className="space-y-2">
-                        {students.map(student => (
-                            <div
-                                key={student.id}
-                                onClick={() => setSelectedStudent(student)}
-                                className={`p-3 rounded border cursor-pointer hover:bg-gray-50 ${selectedStudent?.id === student.id ? 'bg-blue-50 border-blue-500' : ''
-                                    }`}
-                            >
-                                <p className="font-medium">{student.full_name || 'Unnamed'}</p>
-                                <p className="text-xs text-gray-500">{student.email}</p>
-                            </div>
-                        ))}
+                <div className="w-1/3 border-r pr-4 flex flex-col h-full">
+                    <h3 className="font-semibold text-gray-700 mb-4 shrink-0">Select Student</h3>
+                    <div className="mb-4 shrink-0">
+                        <input
+                            type="text"
+                            placeholder="Search student by name..."
+                            value={studentSearch}
+                            onChange={(e) => setStudentSearch(e.target.value)}
+                            className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="space-y-2 overflow-y-auto flex-grow">
+                        {students
+                            .filter(s => (s.full_name || '').toLowerCase().includes(studentSearch.toLowerCase()))
+                            .map(student => (
+                                <div
+                                    key={student.id}
+                                    onClick={() => setSelectedStudent(student)}
+                                    className={`p-3 rounded border cursor-pointer hover:bg-gray-50 ${selectedStudent?.id === student.id ? 'bg-blue-50 border-blue-500' : ''
+                                        }`}
+                                >
+                                    <p className="font-medium">{student.full_name || 'Unnamed'}</p>
+                                    <p className="text-xs text-gray-500">{student.email}</p>
+                                </div>
+                            ))}
                     </div>
                 </div>
 
