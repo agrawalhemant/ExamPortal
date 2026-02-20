@@ -27,17 +27,6 @@ const StudentManager = () => {
         }
     };
 
-    const handleDeleteStudent = async (id) => {
-        if (window.confirm('Delete this student profile? (This does not delete the user account, only the profile data)')) {
-            try {
-                await supabase.from('profiles').delete().eq('id', id);
-                setStudents(students.filter(s => s.id !== id));
-                if (selectedStudent?.id === id) setSelectedStudent(null);
-            } catch (error) {
-                console.error("Error deleting student:", error);
-            }
-        }
-    };
 
     const toggleExamAssignment = async (examId) => {
         if (!selectedStudent) return;
@@ -103,12 +92,6 @@ const StudentManager = () => {
                                     <h3 className="font-medium">{student.full_name || 'Unnamed Student'}</h3>
                                     <p className="text-sm text-gray-500">{student.email}</p>
                                 </div>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleDeleteStudent(student.id); }}
-                                    className="text-red-400 hover:text-red-600"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
                             </div>
                         ))
                     )}

@@ -56,13 +56,17 @@ const AdminReports = () => {
         if (!student) return [];
 
         const studentResults = results.filter(r => r.student_id === studentId);
-
-        // Combine assigned exams with results
         const assignments = student.assigned_exams || [];
 
-        return assignments.map(examId => {
+        // Combine assigned exams with results to ensure we capture past non-assigned results too
+        const allExamIds = Array.from(new Set([...studentResults.map(r => r.exam_id), ...assignments]));
+
+        return allExamIds.map(examId => {
             const exam = exams.find(e => e.id === examId);
             const result = studentResults.find(r => r.exam_id === examId);
+
+            // If the exam was deleted and there is no result for it, ignore this assignment (garbage cleanup)
+            if (!exam && !result) return null;
 
             let calculatedTotal = '-';
             if (result) {
@@ -75,14 +79,14 @@ const AdminReports = () => {
             }
 
             return {
-                examTitle: exam ? exam.title : 'Unknown Exam',
+                examTitle: exam ? exam.title : 'Deleted Exam (Legacy Result)',
                 examId: examId,
                 status: result ? 'Completed' : 'Pending',
                 score: result ? result.score : '-',
                 totalMarks: calculatedTotal,
                 submittedAt: result ? new Date(result.submitted_at).toLocaleDateString() : '-'
             };
-        });
+        }).filter(Boolean); // Filter out the nulls
     };
 
     return (
