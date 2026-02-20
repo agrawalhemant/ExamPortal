@@ -48,13 +48,20 @@ const ExamManager = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this exam? This will also unassign it from all students.')) {
+        if (window.confirm('Are you sure you want to delete this exam? This will also unassign it from all students and delete all associated student results.')) {
             try {
-                // 1. Delete the exam from exams table
+                // 1. Delete associated results from exam_results table to avoid foreign key constraint errors
+                const { error: resultsDeleteError } = await supabase.from('exam_results').delete().eq('exam_id', id);
+                if (resultsDeleteError) {
+                    console.error("Error deleting exam results:", resultsDeleteError);
+                    throw new Error("Failed to delete associated exam results.");
+                }
+
+                // 2. Delete the exam from exams table
                 const { error: deleteError } = await supabase.from('exams').delete().eq('id', id);
                 if (deleteError) throw deleteError;
 
-                // 2. Unassign from all students
+                // 3. Unassign from all students
                 // Fetch profiles that have this exam in their assigned_exams array
                 // Supabase JSONB contains operator is `@>`.
                 const { "data": profilesToUpdate, "error": fetchError } = await supabase
@@ -76,7 +83,7 @@ const ExamManager = () => {
                 setExams(exams.filter(e => e.id !== id));
             } catch (error) {
                 console.error('Error deleting exam:', error);
-                setMessage('Failed to delete exam');
+                setMessage(error.message || 'Failed to delete exam');
             }
         }
     };
