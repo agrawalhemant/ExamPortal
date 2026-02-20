@@ -48,7 +48,7 @@ const PrivateRoute = ({ role, children }) => {
 // --- Exam Components ---
 
 const ExamLayout = () => {
-  const { isExamActive, examStatus, startExam, submitExam, timeLeft, loadExam, questions, activeExamId, examConfig } = useExam();
+  const { isExamActive, examStatus, startExam, submitExam, timeLeft, loadExam, questions, activeExamId, examConfig, violationWarning, clearViolationWarning } = useExam();
   const { examId } = useParams();
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -199,6 +199,33 @@ const ExamLayout = () => {
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-semibold transition"
               >
                 Yes, Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Violation Warning Modal */}
+      {violationWarning?.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
+          <div className="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full text-center border-t-8 border-red-500">
+            <div className="flex justify-center mb-4">
+              <div className="bg-red-100 p-3 rounded-full">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">Security Warning</h2>
+            <p className="text-gray-700 mb-6 font-medium text-center">
+              {violationWarning.message}
+            </p>
+            <div className="flex justify-center">
+              <button
+                onClick={() => clearViolationWarning()}
+                className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-bold transition w-full"
+              >
+                {violationWarning.isAutoSubmit ? 'View Results' : 'Acknowledge'}
               </button>
             </div>
           </div>

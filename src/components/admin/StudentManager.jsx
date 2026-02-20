@@ -131,7 +131,7 @@ const StudentManager = () => {
                                 >
                                     <div>
                                         <h4 className="font-medium">{exam.title}</h4>
-                                        <p className="text-xs text-gray-500">{exam.duration} mins • {exam.topic}</p>
+                                        <p className="text-xs text-gray-500">{exam.duration} mins</p>
                                     </div>
                                     {isAssigned && <Check size={20} className="text-green-600" />}
                                 </div>

@@ -15,6 +15,7 @@ export const ExamProvider = ({ children }) => {
     const [isExamActive, setIsExamActive] = useState(false);
     const [examStatus, setExamStatus] = useState('instruction');
     const [violations, setViolations] = useState(0);
+    const [violationWarning, setViolationWarning] = useState({ show: false, message: '', isAutoSubmit: false });
     const [examConfig, setExamConfig] = useState(null);
     const [activeExamId, setActiveExamId] = useState(null);
     const { user } = useAuth();
@@ -154,7 +155,6 @@ export const ExamProvider = ({ children }) => {
 
                 // Clear local progress on successful submit
                 localStorage.removeItem(`exam_progress_${activeExamId}`);
-                alert("Exam submitted successfully!");
             } catch (error) {
                 console.error("Error submitting exam:", error);
                 alert("Failed to submit exam results to server. Your progress is saved locally. Please contact admin.");
@@ -263,14 +263,18 @@ export const ExamProvider = ({ children }) => {
         setViolations(prev => {
             const newCount = prev + 1;
             if (newCount >= 3) {
-                alert("Maximum violations reached. Auto-submitting exam.");
+                setViolationWarning({ show: true, message: "Maximum violations reached. Auto-submitting exam.", isAutoSubmit: true });
                 submitExam();
             } else {
-                alert(`Warning: Tab switching is not allowed! Violation ${newCount}/3`);
+                setViolationWarning({ show: true, message: `Warning: Tab switching is not allowed! Violation ${newCount}/3`, isAutoSubmit: false });
             }
             return newCount;
         })
     }
+
+    const clearViolationWarning = () => {
+        setViolationWarning({ show: false, message: '', isAutoSubmit: false });
+    };
 
     const value = {
         questions,
@@ -280,6 +284,8 @@ export const ExamProvider = ({ children }) => {
         isExamActive,
         examStatus,
         violations,
+        violationWarning,
+        clearViolationWarning,
         activeExamId,
         examConfig,
         startExam,

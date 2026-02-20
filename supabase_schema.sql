@@ -15,8 +15,6 @@ create table profiles (
 create table exams (
   id uuid default uuid_generate_v4() primary key,
   title text not null,
-  description text,
-  topic text,
   duration integer, -- minutes
   marks_per_question integer default 4,
   negative_marks integer default 1,
@@ -86,3 +84,19 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- 5. Storage Bucket for Question Images
+insert into storage.buckets (id, name, public) 
+values ('question-images', 'question-images', true)
+on conflict (id) do nothing;
+
+create policy "Public Access to question-images" 
+on storage.objects for select 
+using ( bucket_id = 'question-images' );
+
+create policy "Admins can upload question-images" 
+on storage.objects for insert 
+with check ( 
+  bucket_id = 'question-images' and 
+  exists (select 1 from public.profiles where id = auth.uid() and role = 'admin') 
+);
