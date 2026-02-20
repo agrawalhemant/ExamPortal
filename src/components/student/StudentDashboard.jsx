@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Play, Clock, CheckCircle, AlertCircle, RefreshCw, User, Lock, X, Save } from 'lucide-react';
+import { LogOut, Play, Clock, CheckCircle, AlertCircle, RefreshCw, User, Lock, X, Save, Search } from 'lucide-react';
 import { supabase } from '../../supabase/client';
 import { useSearchParams } from 'react-router-dom';
 
@@ -11,6 +11,7 @@ const StudentDashboard = ({ student, onStartExam, onLogout }) => {
     // Profile / Change Password State
     const [showProfile, setShowProfile] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         if (searchParams.get('reset') === 'true') {
@@ -89,7 +90,8 @@ const StudentDashboard = ({ student, onStartExam, onLogout }) => {
                 const { data: examsData } = await supabase
                     .from('exams')
                     .select('*')
-                    .in('id', examIds);
+                    .in('id', examIds)
+                    .order('created_at', { ascending: false });
 
                 setAssignedExams(examsData || []);
             } else {
@@ -149,73 +151,91 @@ const StudentDashboard = ({ student, onStartExam, onLogout }) => {
                         No exams assigned to you yet. Contact your administrator.
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {assignedExams.map(exam => {
-                            const status = getExamStatus(exam.id);
-                            const score = getScore(exam.id);
-                            const totalMarks = exam.questions?.reduce((sum, q) => {
-                                return sum + (q.marksPerQuestion !== undefined ? q.marksPerQuestion : (exam.marks_per_question || 4));
-                            }, 0) || 0;
+                    <>
+                        <div className="mb-6 relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="text"
+                                placeholder="Search exams by title..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none shadow-sm"
+                            />
+                        </div>
 
-                            return (
-                                <div key={exam.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h3 className="text-xl font-bold text-gray-800">{exam.title}</h3>
-                                                <p className="text-sm text-gray-500 font-medium bg-gray-100 inline-block px-2 py-1 rounded mt-1">
-                                                    {exam.topic}
-                                                </p>
-                                            </div>
-                                            {status === 'completed' ? (
-                                                <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded text-sm font-medium">
-                                                    <CheckCircle size={16} /> Completed
-                                                </span>
-                                            ) : (
-                                                <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-1 rounded text-sm font-medium">
-                                                    <AlertCircle size={16} /> Pending
-                                                </span>
-                                            )}
-                                        </div>
+                        {assignedExams.filter(exam => exam.title?.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+                            <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
+                                No exams match your search.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {assignedExams
+                                    .filter(exam => exam.title?.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    .map(exam => {
+                                        const status = getExamStatus(exam.id);
+                                        const score = getScore(exam.id);
+                                        const totalMarks = exam.questions?.reduce((sum, q) => {
+                                            return sum + (q.marksPerQuestion !== undefined ? q.marksPerQuestion : (exam.marks_per_question || 4));
+                                        }, 0) || 0;
 
-                                        <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-gray-600">
-                                            <div className="flex items-center gap-2">
-                                                <Clock size={16} className="text-blue-500" />
-                                                {exam.duration} Minutes
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-semibold">Questions:</span> {exam.questions?.length || 0}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-semibold">Total Marks:</span> {totalMarks}
-                                            </div>
-                                            {status === 'completed' && (
-                                                <div className="flex items-center gap-2 font-bold text-blue-600">
-                                                    Score: {score}
+                                        return (
+                                            <div key={exam.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+                                                <div className="p-6">
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div>
+                                                            <h3 className="text-xl font-bold text-gray-800">{exam.title}</h3>
+                                                        </div>
+                                                        {status === 'completed' ? (
+                                                            <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded text-sm font-medium">
+                                                                <CheckCircle size={16} /> Completed
+                                                            </span>
+                                                        ) : (
+                                                            <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-1 rounded text-sm font-medium">
+                                                                <AlertCircle size={16} /> Pending
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-gray-600">
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock size={16} className="text-blue-500" />
+                                                            {exam.duration} Minutes
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-semibold">Questions:</span> {exam.questions?.length || 0}
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-semibold">Total Marks:</span> {totalMarks}
+                                                        </div>
+                                                        {status === 'completed' && (
+                                                            <div className="flex items-center gap-2 font-bold text-blue-600">
+                                                                Score: {score}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {status === 'pending' ? (
+                                                        <button
+                                                            onClick={() => onStartExam(exam)}
+                                                            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold"
+                                                        >
+                                                            <Play size={18} /> Start Test
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            disabled
+                                                            className="w-full bg-gray-100 text-gray-400 py-3 rounded-lg cursor-not-allowed font-medium"
+                                                        >
+                                                            Submitted
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-
-                                        {status === 'pending' ? (
-                                            <button
-                                                onClick={() => onStartExam(exam)}
-                                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold"
-                                            >
-                                                <Play size={18} /> Start Test
-                                            </button>
-                                        ) : (
-                                            <button
-                                                disabled
-                                                className="w-full bg-gray-100 text-gray-400 py-3 rounded-lg cursor-not-allowed font-medium"
-                                            >
-                                                Submitted
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        )}
+                    </>
                 )}
             </main>
 
