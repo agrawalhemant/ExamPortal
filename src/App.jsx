@@ -53,6 +53,32 @@ const ExamLayout = () => {
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const handleStartTest = () => {
+    // 2. Popup window logic
+    if (!window.location.search.includes('popup=true')) {
+      // Launch popup
+      const popupUrl = `${window.location.origin}${window.location.pathname}?popup=true`;
+      const features = `toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${window.screen.availWidth},height=${window.screen.availHeight}`;
+
+      const popup = window.open(popupUrl, '_blank', features);
+
+      if (!popup) {
+        alert("Please allow popups for this site to take the exam.");
+        return;
+      }
+
+      // Navigate the parent window back to the dashboard to avoid dual-running states
+      navigate('/student/dashboard');
+    }
+  };
+
+  // Auto-start exam if we are in the popup window and data is loaded
+  useEffect(() => {
+    if (examStatus === 'instruction' && window.location.search.includes('popup=true') && questions.length > 0) {
+      startExam();
+    }
+  }, [examStatus, startExam, questions.length]);
+
   // Load exam if not already loaded or if ID differs
   useEffect(() => {
     if (examId && activeExamId !== examId) {
@@ -60,8 +86,25 @@ const ExamLayout = () => {
     }
   }, [examId, activeExamId, loadExam]);
 
+  // Determine if device is mobile size for rendering
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
 
   if (examStatus === 'instruction') {
+    // If it's the popup, show a loading state briefly while useEffect fires startExam
+    if (window.location.search.includes('popup=true')) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+          <p className="text-xl text-gray-600 animate-pulse">Initializing Secure Exam Environment...</p>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
         <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg text-center">
@@ -73,12 +116,20 @@ const ExamLayout = () => {
             <li><strong>Important:</strong> Make sure to click the "Save & Next" button to confirm your answer or to clear a response.</li>
             <li>Good luck!</li>
           </ul>
-          <button
-            onClick={startExam}
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition"
-          >
-            Start Test
-          </button>
+
+          {isMobile ? (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              <strong>Device Not Supported:</strong> Exams can only be taken on desktop computers, laptops, or large tablets. Please switch devices to continue.
+            </div>
+          ) : (
+            <button
+              onClick={handleStartTest}
+              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition"
+            >
+              Start Test
+            </button>
+          )}
+
           <button
             onClick={() => navigate('/student/dashboard')}
             className="block mt-4 text-gray-500 hover:text-gray-700 mx-auto"
