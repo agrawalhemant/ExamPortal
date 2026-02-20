@@ -179,31 +179,27 @@ export const ExamProvider = ({ children }) => {
         return () => clearInterval(timer);
     }, [isExamActive, timeLeft, submitExam]);
 
-    const handleOptionSelect = (option) => {
-        setUserResponses(prev => ({
-            ...prev,
-            [questions[currentQuestionIndex].id]: {
-                ...prev[questions[currentQuestionIndex].id],
-                selectedOption: option
-            }
-        }));
-    };
 
-    const saveAndNext = () => {
+
+    const saveAndNext = (finalOption) => {
         const currentQId = questions[currentQuestionIndex].id;
-        const currentResponse = userResponses[currentQId];
+        const currentResponse = userResponses[currentQId] || {};
 
         let newStatus = 'not_answered';
-        if (currentResponse.selectedOption) {
-            newStatus = 'answered';
+        // if finalOption has a value, update status to answered variants
+        if (finalOption) {
+            newStatus = currentResponse.markedForReview ? 'answered_and_marked_for_review' : 'answered';
+        } else if (currentResponse.markedForReview) {
+            newStatus = 'marked_for_review';
         }
 
         setUserResponses(prev => ({
             ...prev,
             [currentQId]: {
                 ...prev[currentQId],
-                status: newStatus,
-                markedForReview: false
+                selectedOption: finalOption,
+                status: newStatus
+                // We DO NOT set markedForReview: false here anymore. It persists.
             }
         }));
 
@@ -224,11 +220,18 @@ export const ExamProvider = ({ children }) => {
 
     const markForReview = () => {
         const currentQId = questions[currentQuestionIndex].id;
-        const currentResponse = userResponses[currentQId];
+        const currentResponse = userResponses[currentQId] || {};
 
-        let newStatus = 'marked_for_review';
-        if (currentResponse.selectedOption) {
-            newStatus = 'answered_and_marked_for_review';
+        const isCurrentlyMarked = currentResponse.markedForReview;
+        const hasAnswer = currentResponse.selectedOption;
+
+        let newStatus;
+        if (isCurrentlyMarked) {
+            // Unmarking
+            newStatus = hasAnswer ? 'answered' : (currentResponse.status === 'not_visited' ? 'not_visited' : 'not_answered');
+        } else {
+            // Marking
+            newStatus = hasAnswer ? 'answered_and_marked_for_review' : 'marked_for_review';
         }
 
         setUserResponses(prev => ({
@@ -236,37 +239,11 @@ export const ExamProvider = ({ children }) => {
             [currentQId]: {
                 ...prev[currentQId],
                 status: newStatus,
-                markedForReview: true
-            }
-        }));
-
-        if (currentQuestionIndex < questions.length - 1) {
-            setCurrentQuestionIndex(prev => prev + 1);
-            const nextQId = questions[currentQuestionIndex + 1].id;
-            setUserResponses(prev => {
-                if (prev[nextQId] && prev[nextQId].status === 'not_visited') {
-                    return {
-                        ...prev,
-                        [nextQId]: { ...prev[nextQId], status: 'not_answered' }
-                    }
-                }
-                return prev;
-            });
-        }
-    };
-
-    const clearResponse = () => {
-        const currentQId = questions[currentQuestionIndex].id;
-        setUserResponses(prev => ({
-            ...prev,
-            [currentQId]: {
-                ...prev[currentQId],
-                selectedOption: null,
-                status: 'not_answered', // Reverting to not answered
-                markedForReview: false
+                markedForReview: !isCurrentlyMarked
             }
         }));
     };
+
 
     const navigateToQuestion = (index) => {
         const targetQId = questions[index].id;
@@ -304,12 +281,11 @@ export const ExamProvider = ({ children }) => {
         examStatus,
         violations,
         activeExamId,
+        examConfig,
         startExam,
         submitExam,
-        handleOptionSelect,
         saveAndNext,
         markForReview,
-        clearResponse,
         navigateToQuestion,
         handleViolation,
         loadExam

@@ -48,7 +48,7 @@ const PrivateRoute = ({ role, children }) => {
 // --- Exam Components ---
 
 const ExamLayout = () => {
-  const { isExamActive, examStatus, startExam, submitExam, timeLeft, loadExam, questions, activeExamId } = useExam();
+  const { isExamActive, examStatus, startExam, submitExam, timeLeft, loadExam, questions, activeExamId, examConfig } = useExam();
   const { examId } = useParams();
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -70,6 +70,7 @@ const ExamLayout = () => {
             <li>The exam will run in full-screen mode.</li>
             <li>Do not switch tabs or windows. Doing so will be recorded as a violation.</li>
             <li>3 violations will result in auto-submission.</li>
+            <li><strong>Important:</strong> Make sure to click the "Save & Next" button to confirm your answer or to clear a response.</li>
             <li>Good luck!</li>
           </ul>
           <button
@@ -96,9 +97,14 @@ const ExamLayout = () => {
   return (
     <Proctoring>
       <div className="flex flex-col h-screen overflow-hidden">
-        <header className="bg-indigo-700 text-white h-16 flex items-center justify-between px-6 shadow-md z-10 shrink-0">
-          <h1 className="text-xl font-bold">Entrance Exam Portal</h1>
-          <div className="flex items-center gap-4">
+        <header className="bg-white shadow px-6 py-3 flex justify-between items-center z-10 shrink-0">
+          <div className="w-1/3">
+            <h1 className="text-xl font-bold text-gray-800">Entrance Exam Portal</h1>
+          </div>
+          <div className="w-1/3 text-center">
+            <h2 className="text-xl font-bold text-blue-800">{examConfig?.title || 'Active Exam'}</h2>
+          </div>
+          <div className="flex items-center justify-end gap-4 w-1/3">
             <Timer />
             <button
               onClick={() => setShowConfirm(true)}

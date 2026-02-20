@@ -9,6 +9,7 @@ const ExamManager = () => {
     const [currentExam, setCurrentExam] = useState(null);
     const [uploadedFile, setUploadedFile] = useState(null);
     const [message, setMessage] = useState('');
+    const [examToDelete, setExamToDelete] = useState(null);
     const { user } = useAuth();
 
     useEffect(() => {
@@ -47,44 +48,47 @@ const ExamManager = () => {
         setUploadedFile(null); // Reset file input when editing, though questions are already loaded
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this exam? This will also unassign it from all students and delete all associated student results.')) {
-            try {
-                // 1. Delete associated results from exam_results table to avoid foreign key constraint errors
-                const { error: resultsDeleteError } = await supabase.from('exam_results').delete().eq('exam_id', id);
-                if (resultsDeleteError) {
-                    console.error("Error deleting exam results:", resultsDeleteError);
-                    throw new Error("Failed to delete associated exam results.");
-                }
+    const handleDeleteClick = (id) => {
+        setExamToDelete(id);
+    };
 
-                // 2. Delete the exam from exams table
-                const { error: deleteError } = await supabase.from('exams').delete().eq('id', id);
-                if (deleteError) throw deleteError;
+    const confirmDelete = async () => {
+        if (!examToDelete) return;
+        const id = examToDelete;
 
-                // 3. Unassign from all students
-                // Fetch profiles that have this exam in their assigned_exams array
-                // Supabase JSONB contains operator is `@>`.
-                const { "data": profilesToUpdate, "error": fetchError } = await supabase
-                    .from('profiles')
-                    .select('id, assigned_exams')
-                    .contains('assigned_exams', [id]);
-
-                if (fetchError) {
-                    console.error("Error fetching profiles to unassign exam:", fetchError);
-                } else if (profilesToUpdate && profilesToUpdate.length > 0) {
-                    // Update each profile asynchronously
-                    await Promise.all(profilesToUpdate.map(async (profile) => {
-                        const updatedAssignments = profile.assigned_exams.filter(examId => examId !== id);
-                        await supabase.from('profiles').update({ assigned_exams: updatedAssignments }).eq('id', profile.id);
-                    }));
-                }
-
-                // Update local state
-                setExams(exams.filter(e => e.id !== id));
-            } catch (error) {
-                console.error('Error deleting exam:', error);
-                setMessage(error.message || 'Failed to delete exam');
+        try {
+            // 1. Delete associated results from exam_results table to avoid foreign key constraint errors
+            const { error: resultsDeleteError } = await supabase.from('exam_results').delete().eq('exam_id', id);
+            if (resultsDeleteError) {
+                console.error("Error deleting exam results:", resultsDeleteError);
+                throw new Error("Failed to delete associated exam results.");
             }
+
+            // 2. Delete the exam from exams table
+            const { error: deleteError } = await supabase.from('exams').delete().eq('id', id);
+            if (deleteError) throw deleteError;
+
+            // 3. Unassign from all students
+            const { "data": profilesToUpdate, "error": fetchError } = await supabase
+                .from('profiles')
+                .select('id, assigned_exams')
+                .contains('assigned_exams', JSON.stringify([id]));
+
+            if (fetchError) {
+                console.error("Error fetching profiles to unassign exam:", fetchError);
+            } else if (profilesToUpdate && profilesToUpdate.length > 0) {
+                await Promise.all(profilesToUpdate.map(async (profile) => {
+                    const updatedAssignments = profile.assigned_exams.filter(examId => examId !== id);
+                    await supabase.from('profiles').update({ assigned_exams: updatedAssignments }).eq('id', profile.id);
+                }));
+            }
+
+            setExams(exams.filter(e => e.id !== id));
+            setExamToDelete(null); // Close modal
+        } catch (error) {
+            console.error('Error deleting exam:', error);
+            setMessage(error.message || 'Failed to delete exam');
+            setExamToDelete(null); // Close modal even on error
         }
     };
 
@@ -315,7 +319,7 @@ const ExamManager = () => {
                                         <Edit size={18} />
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(exam.id)}
+                                        onClick={() => handleDeleteClick(exam.id)}
                                         className="p-2 text-red-600 hover:bg-red-50 rounded"
                                         title="Delete"
                                     >
@@ -327,6 +331,33 @@ const ExamManager = () => {
                     </div>
                 )}
             </div>
+
+            {/* Custom Delete Confirmation Modal */}
+            {examToDelete && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full text-center">
+                        <AlertCircle className="mx-auto text-red-500 mb-4" size={48} />
+                        <h2 className="text-xl font-bold mb-2 text-gray-800">Delete Exam?</h2>
+                        <p className="text-gray-600 mb-6 font-medium text-sm">
+                            Are you sure you want to delete this exam? This will also unassign it from all students and permanently delete all associated student results.
+                        </p>
+                        <div className="flex justify-center gap-4">
+                            <button
+                                onClick={() => setExamToDelete(null)}
+                                className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 font-semibold transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-semibold transition flex items-center gap-2"
+                            >
+                                <Trash2 size={16} /> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

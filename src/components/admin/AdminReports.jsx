@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Download } from 'lucide-react';
 import { supabase } from '../../supabase/client';
+import { generatePDF } from '../../utils/pdfGenerator';
 
 const AdminReports = () => {
     const [students, setStudents] = useState([]);
@@ -85,7 +86,9 @@ const AdminReports = () => {
                 status: result ? 'Completed' : 'Pending',
                 score: result ? result.score : '-',
                 totalMarks: calculatedTotal,
-                submittedAt: result ? new Date(result.submitted_at).toLocaleDateString() : '-'
+                submittedAt: result ? new Date(result.submitted_at).toLocaleDateString() : '-',
+                questions: exam ? exam.questions : null,
+                userResponses: result ? result.answers : null
             };
         }).filter(Boolean); // Filter out the nulls
     };
@@ -145,6 +148,7 @@ const AdminReports = () => {
                                             <th className="p-3 border">Status</th>
                                             <th className="p-3 border">Score</th>
                                             <th className="p-3 border">Date</th>
+                                            <th className="p-3 border text-center">Report</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -159,6 +163,19 @@ const AdminReports = () => {
                                                 </td>
                                                 <td className="p-3 border">{row.score} / {row.totalMarks}</td>
                                                 <td className="p-3 border">{row.submittedAt}</td>
+                                                <td className="p-3 border text-center">
+                                                    {row.status === 'Completed' && row.questions && row.userResponses ? (
+                                                        <button
+                                                            onClick={() => generatePDF(row.questions, row.userResponses, row.score, row.totalMarks)}
+                                                            className="text-blue-600 hover:text-blue-800 transition"
+                                                            title="Download Report"
+                                                        >
+                                                            <Download size={18} />
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-gray-400">-</span>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
