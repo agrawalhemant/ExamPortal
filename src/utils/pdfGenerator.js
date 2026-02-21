@@ -52,8 +52,17 @@ export const generatePDF = (questions, userResponses, score, totalMarks) => {
             headStyles: { fillColor: [22, 160, 133] },
         });
 
-        // Save PDF
-        doc.save("exam_report.pdf");
+        // Force download to ~/Downloads instead of opening a new tab
+        const blob = doc.output('blob');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'exam_report.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
     } catch (error) {
         console.error("Error generating PDF:", error);
     }
