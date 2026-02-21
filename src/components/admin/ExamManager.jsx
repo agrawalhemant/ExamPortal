@@ -95,7 +95,6 @@ const ExamManager = () => {
                         .from('question-images')
                         .remove(imageFilenames);
                     if (storageError) {
-                        // Non-fatal — log but continue with DB deletion
                         console.warn('Storage cleanup warning:', storageError.message);
                     }
                 }
