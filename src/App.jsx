@@ -13,7 +13,7 @@ import StudentLogin from './components/student/StudentLogin';
 import StudentDashboard from './components/student/StudentDashboard';
 import StudentRegister from './components/student/StudentRegister';
 import ForgotPassword from './components/student/ForgotPassword';
-import { Settings } from 'lucide-react';
+import { Settings, Loader2 } from 'lucide-react';
 
 // --- Protected Route Component (Internal Definition for simplicity or external) ---
 // Let's redefine it here or update the external one. 
@@ -48,10 +48,46 @@ const PrivateRoute = ({ role, children }) => {
 // --- Exam Components ---
 
 const ExamLayout = () => {
-  const { isExamActive, examStatus, startExam, submitExam, timeLeft, loadExam, questions, activeExamId, examConfig, violationWarning, clearViolationWarning } = useExam();
+  const { isExamActive, examStatus, startExam, submitExam, timeLeft, loadExam, questions, activeExamId, examConfig, violationWarning, clearViolationWarning, assetsLoaded, setAssetsLoaded } = useExam();
   const { examId } = useParams();
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [loadedImageCount, setLoadedImageCount] = useState(0);
+  const [totalImageCount, setTotalImageCount] = useState(0);
+
+  // Preload Images
+  useEffect(() => {
+    if (questions && questions.length > 0) {
+      const urls = questions.map(q => q.imageUrl).filter(Boolean);
+
+      if (urls.length === 0) {
+        setAssetsLoaded(true);
+        return;
+      }
+
+      setTotalImageCount(urls.length);
+      setLoadedImageCount(0);
+      setAssetsLoaded(false);
+
+      let loaded = 0;
+      urls.forEach(url => {
+        const img = new Image();
+        img.src = url;
+        img.onload = () => {
+          loaded++;
+          setLoadedImageCount(loaded);
+          if (loaded === urls.length) setAssetsLoaded(true);
+        };
+        img.onerror = () => {
+          loaded++; // Count errors too so it doesn't hang forever
+          setLoadedImageCount(loaded);
+          if (loaded === urls.length) setAssetsLoaded(true);
+        };
+      });
+    } else {
+      setAssetsLoaded(false);
+    }
+  }, [questions, setAssetsLoaded]);
 
   const handleStartTest = () => {
     // 2. Popup window logic
@@ -167,12 +203,24 @@ const ExamLayout = () => {
         </header>
 
         <div className="flex flex-1 overflow-hidden">
-          <main className="w-[70%] h-full p-4 bg-gray-100 overflow-hidden">
-            <QuestionArea />
-          </main>
-          <aside className="w-[30%] h-full p-4 bg-gray-200 border-l border-gray-300 overflow-hidden">
-            <QuestionPalette />
-          </aside>
+          {!assetsLoaded ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50">
+              <Loader2 className="animate-spin text-blue-600 w-12 h-12 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-800">Preparing Exam Assets...</h2>
+              {totalImageCount > 0 && (
+                <p className="text-gray-500 mt-2 font-medium">Loading images: {loadedImageCount} / {totalImageCount}</p>
+              )}
+            </div>
+          ) : (
+            <>
+              <main className="w-[70%] h-full p-4 bg-gray-100 overflow-hidden">
+                <QuestionArea />
+              </main>
+              <aside className="w-[30%] h-full p-4 bg-gray-200 border-l border-gray-300 overflow-hidden">
+                <QuestionPalette />
+              </aside>
+            </>
+          )}
         </div>
       </div>
 

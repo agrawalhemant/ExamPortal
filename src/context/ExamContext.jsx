@@ -18,6 +18,7 @@ export const ExamProvider = ({ children }) => {
     const [violationWarning, setViolationWarning] = useState({ show: false, message: '', isAutoSubmit: false });
     const [examConfig, setExamConfig] = useState(null);
     const [activeExamId, setActiveExamId] = useState(null);
+    const [assetsLoaded, setAssetsLoaded] = useState(false);
     const { user } = useAuth();
 
     // Initialize/Load Exam
@@ -165,7 +166,7 @@ export const ExamProvider = ({ children }) => {
     // Timer logic
     useEffect(() => {
         let timer;
-        if (isExamActive && timeLeft > 0) {
+        if (isExamActive && assetsLoaded && timeLeft > 0) {
             timer = setInterval(() => {
                 setTimeLeft((prev) => {
                     if (prev <= 1) {
@@ -177,7 +178,7 @@ export const ExamProvider = ({ children }) => {
             }, 1000);
         }
         return () => clearInterval(timer);
-    }, [isExamActive, timeLeft, submitExam]);
+    }, [isExamActive, assetsLoaded, timeLeft, submitExam]);
 
 
 
@@ -288,6 +289,8 @@ export const ExamProvider = ({ children }) => {
         clearViolationWarning,
         activeExamId,
         examConfig,
+        assetsLoaded,
+        setAssetsLoaded,
         startExam,
         submitExam,
         saveAndNext,
