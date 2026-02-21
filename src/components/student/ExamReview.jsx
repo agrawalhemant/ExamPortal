@@ -132,7 +132,7 @@ const ExamReview = () => {
             <div className="flex flex-1 overflow-hidden">
 
                 {/* ── LEFT: Question List (scrollable) ── */}
-                <main className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+                <main className="w-[70%] overflow-y-auto px-6 py-6 space-y-5">
                     {reviewItems.map((item) => {
                         const meta = cardMeta[item.status];
                         const { Icon } = meta;
@@ -243,7 +243,7 @@ const ExamReview = () => {
                 </main>
 
                 {/* ── RIGHT SIDEBAR (sticky) ── */}
-                <aside className="w-72 shrink-0 border-l bg-white overflow-y-auto flex flex-col gap-4 px-4 py-5">
+                <aside className="w-[30%] shrink-0 border-l bg-white overflow-y-auto flex flex-col gap-4 px-4 py-5">
 
                     {/* Score Summary */}
                     <div>
@@ -284,13 +284,13 @@ const ExamReview = () => {
 
                     <div className="border-t pt-4">
                         <h3 className="font-bold text-gray-700 text-sm mb-3">Jump to Question</h3>
-                        <div className="grid grid-cols-5 gap-1.5">
+                        <div className="grid grid-cols-4 gap-3 p-2">
                             {reviewItems.map((item) => (
                                 <button
                                     key={item.index}
                                     onClick={() => scrollToQuestion(item.index)}
                                     title={`Q${item.index + 1} — ${item.status}`}
-                                    className={`w-full aspect-square flex items-center justify-center text-xs font-bold rounded-lg transition hover:opacity-80 ${statusColors[item.status]}`}
+                                    className={`w-10 h-10 rounded flex items-center justify-center font-semibold text-sm transition-all shadow-sm hover:opacity-80 ${statusColors[item.status]}`}
                                 >
                                     {item.index + 1}
                                 </button>
