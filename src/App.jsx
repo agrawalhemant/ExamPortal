@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, Navigate, useParams, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, Navigate, useParams, Outlet, useLocation } from 'react-router-dom';
 import { ExamProvider, useExam } from './context/ExamContext';
 import { AuthProvider, useAuth } from './context/AuthContext'; // Import AuthProvider
 import QuestionArea from './components/QuestionArea';
@@ -13,6 +13,7 @@ import StudentLogin from './components/student/StudentLogin';
 import StudentDashboard from './components/student/StudentDashboard';
 import StudentRegister from './components/student/StudentRegister';
 import ForgotPassword from './components/student/ForgotPassword';
+import ExamReview from './components/student/ExamReview';
 import { Settings, Loader2, BookOpen, Award, ShieldCheck, ArrowRight } from 'lucide-react';
 
 // --- Protected Route Component (Internal Definition for simplicity or external) ---
@@ -460,6 +461,14 @@ const StudentDashboardWrapper = () => {
   return <StudentDashboard student={user} onStartExam={handleStartExam} onLogout={handleLogout} />;
 };
 
+const StudentExamReviewWrapper = () => {
+  const location = useLocation();
+  if (!location.state?.exam || !location.state?.result) {
+    return <Navigate to="/student/dashboard" replace />;
+  }
+  return <ExamReview />;
+};
+
 // --- Main App ---
 
 function App() {
@@ -482,6 +491,7 @@ function App() {
           {/* Secure Student Routes */}
           <Route element={<PrivateRoute role="student" />}>
             <Route path="/student/dashboard" element={<StudentDashboardWrapper />} />
+            <Route path="/student/exam-review" element={<StudentExamReviewWrapper />} />
             <Route path="/exam/:examId" element={
               <ExamProvider>
                 <ExamLayout />

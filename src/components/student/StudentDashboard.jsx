@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Play, Clock, CheckCircle, AlertCircle, RefreshCw, User, Lock, X, Save, Search } from 'lucide-react';
+import { LogOut, Play, Clock, CheckCircle, AlertCircle, RefreshCw, User, Lock, X, Save, Search, BookOpen } from 'lucide-react';
 import { supabase } from '../../supabase/client';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const StudentDashboard = ({ student, onStartExam, onLogout }) => {
     const [assignedExams, setAssignedExams] = useState([]);
     const [previousResults, setPreviousResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     // Profile / Change Password State
     const [showProfile, setShowProfile] = useState(false);
@@ -121,7 +122,9 @@ const StudentDashboard = ({ student, onStartExam, onLogout }) => {
     const getScore = (examId) => {
         const result = previousResults.find(r => r.exam_id === examId);
         return result ? result.score : null;
-    }
+    };
+
+    const getResult = (examId) => previousResults.find(r => r.exam_id === examId) || null;
 
     return (
         <div className="min-h-screen bg-gray-50 relative">
@@ -221,14 +224,17 @@ const StudentDashboard = ({ student, onStartExam, onLogout }) => {
                                                         >
                                                             <Play size={18} /> Start Test
                                                         </button>
-                                                    ) : (
-                                                        <button
-                                                            disabled
-                                                            className="w-full bg-gray-100 text-gray-400 py-3 rounded-lg cursor-not-allowed font-medium"
-                                                        >
-                                                            Submitted
-                                                        </button>
-                                                    )}
+                                                    ) : (() => {
+                                                        const result = getResult(exam.id);
+                                                        return (
+                                                            <button
+                                                                onClick={() => navigate('/student/exam-review', { state: { exam, result } })}
+                                                                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition font-semibold"
+                                                            >
+                                                                <BookOpen size={18} /> Review Exam
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                         );
