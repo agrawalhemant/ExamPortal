@@ -13,7 +13,7 @@ import StudentLogin from './components/student/StudentLogin';
 import StudentDashboard from './components/student/StudentDashboard';
 import StudentRegister from './components/student/StudentRegister';
 import ForgotPassword from './components/student/ForgotPassword';
-import { Settings, Loader2 } from 'lucide-react';
+import { Settings, Loader2, BookOpen, Award, ShieldCheck, ArrowRight } from 'lucide-react';
 
 // --- Protected Route Component (Internal Definition for simplicity or external) ---
 // Let's redefine it here or update the external one. 
@@ -288,22 +288,106 @@ const ExamLayout = () => {
 const Home = () => {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 flex flex-col items-center justify-center text-white">
-      <h1 className="text-5xl font-bold mb-8">Online Examination Portal</h1>
-      <div className="space-y-4 flex flex-col items-center">
-        <button
-          onClick={() => navigate('/student/login')}
-          className="w-64 bg-white text-indigo-600 px-8 py-4 rounded-full font-bold text-xl shadow-lg hover:bg-gray-100 transition transform hover:scale-105"
-        >
-          Student Login
-        </button>
+    <div className="relative min-h-screen bg-[#07090f] overflow-hidden flex flex-col justify-center items-center text-white font-sans selection:bg-cyan-500/30">
+      {/* Abstract Background Mesh Gradients */}
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/30 rounded-full mix-blend-screen filter blur-[100px] opacity-70 animate-pulse" style={{ animationDuration: '8s' }}></div>
+      <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-blue-600/20 rounded-full mix-blend-screen filter blur-[100px] opacity-70 animate-pulse" style={{ animationDuration: '10s' }}></div>
+      <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-cyan-600/20 rounded-full mix-blend-screen filter blur-[120px] opacity-60"></div>
 
-        <button
-          onClick={() => navigate('/admin/login')}
-          className="flex items-center gap-2 text-blue-100 hover:text-white transition mt-4"
-        >
-          <Settings size={18} /> Admin Portal
-        </button>
+      {/* Grid Overlay for Texture */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+CjxwYXRoIGQ9Ik0wIDBoMjB2MjBIMHoiIGZpbGw9Im5vbmUiLz4KPGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz4KPC9zdmc+')] [mask-image:linear-gradient(to_bottom,white,transparent)] pointer-events-none"></div>
+
+      {/* Main Container */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8 py-10 lg:py-20 flex flex-col lg:flex-row items-center gap-16 min-h-screen">
+
+        {/* Left Side: Typography & Hero */}
+        <div className="flex-1 text-center lg:text-left pt-10 lg:pt-0">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8 shadow-2xl">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span className="text-sm font-semibold tracking-wide text-gray-300 uppercase">Next-Gen Assessment</span>
+          </div>
+
+          <h1 className="text-5xl sm:text-6xl lg:text-8xl font-black tracking-tighter mb-6 leading-[1.1]">
+            Testing,<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600">
+              Reimagined.
+            </span>
+          </h1>
+
+          <p className="text-lg sm:text-xl text-gray-400 mb-12 max-w-xl mx-auto lg:mx-0 leading-relaxed font-light">
+            Step into a distraction-free, highly secure environment engineered explicitly for peak student performance. Minimal friction. Maximum focus.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
+            <button
+              onClick={() => navigate('/student/login')}
+              className="group relative px-8 py-4 bg-white text-black font-bold rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_-10px_rgba(34,211,238,0.5)]"
+            >
+              <div className="absolute inset-0 w-0 bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-300 ease-out group-hover:w-full"></div>
+              <span className="relative group-hover:text-white flex items-center justify-center gap-2 text-lg">
+                Enter Portal <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+              </span>
+            </button>
+            <button
+              onClick={() => navigate('/student/register')}
+              className="px-8 py-4 bg-white/5 text-white font-semibold rounded-2xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 text-lg"
+            >
+              Create Account
+            </button>
+          </div>
+        </div>
+
+        {/* Right Side: Glassmorphic Visual/Widget */}
+        <div className="flex-1 w-full max-w-md lg:max-w-xl relative mt-16 lg:mt-0">
+          <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500 to-purple-500 rounded-[2.5rem] transform rotate-3 scale-105 opacity-20 blur-2xl"></div>
+
+          <div className="relative bg-[#0d1323]/80 border border-white/10 backdrop-blur-2xl p-8 sm:p-10 rounded-[2.5rem] shadow-2xl">
+            <div className="flex items-center justify-between mb-10 border-b border-white/10 pb-8">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-1">System Status</h3>
+                <p className="text-sm font-medium text-cyan-400 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                  All services operational
+                </p>
+              </div>
+              <div className="p-4 bg-white/5 rounded-2xl shadow-inner border border-white/5">
+                <ShieldCheck className="w-8 h-8 text-cyan-400" />
+              </div>
+            </div>
+
+            <div className="space-y-8">
+              <div className="flex items-start gap-5 group">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 group-hover:bg-purple-500/20 transition-colors">
+                  <BookOpen className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <h4 className="text-xl text-white font-semibold mb-1">Smart Interface</h4>
+                  <p className="text-gray-400 leading-relaxed">Immersive, distraction-free focus mode built for modern examinations.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-5 group">
+                <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 transition-colors">
+                  <Award className="w-6 h-6 text-blue-400" />
+                </div>
+                <div>
+                  <h4 className="text-xl text-white font-semibold mb-1">Instant Analytics</h4>
+                  <p className="text-gray-400 leading-relaxed">Cryptographically secure submission with real-time performance tracking.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-10 pt-8 border-t border-white/10">
+              <button
+                onClick={() => navigate('/admin/login')}
+                className="w-full py-4 flex items-center justify-center gap-2 text-sm font-semibold text-gray-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-transparent hover:border-white/10"
+              >
+                <Settings className="w-5 h-5" /> Access Control Panel
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
