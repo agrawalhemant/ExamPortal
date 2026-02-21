@@ -52,8 +52,21 @@ export const generatePDF = (questions, userResponses, score, totalMarks) => {
             headStyles: { fillColor: [22, 160, 133] },
         });
 
-        // Save PDF
-        doc.save("exam_report.pdf");
+        // Use octet-stream to force browser to download rather than preview in PDF viewer
+        const pdfBlob = doc.output('arraybuffer');
+        const blob = new Blob([pdfBlob], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'exam_report.pdf';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 500);
+
 
     } catch (error) {
         console.error("Error generating PDF:", error);
