@@ -152,7 +152,7 @@ const ExamReview = () => {
     const optLabel = (i) => ['A', 'B', 'C', 'D', 'E'][i] ?? String.fromCharCode(65 + i);
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className="h-screen overflow-y-auto bg-gray-100">
             {/* Top Bar */}
             <header className="bg-white border-b shadow-sm sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -244,19 +244,30 @@ const ExamReview = () => {
                                 className={`bg-white rounded-2xl shadow-sm border-2 ${meta.border} overflow-hidden`}
                             >
                                 {/* Question Header */}
-                                <div className={`${meta.bg} px-6 py-4 flex items-start justify-between gap-4`}>
-                                    <div className="flex items-start gap-3">
-                                        <span className="bg-white text-gray-600 font-bold text-sm px-2.5 py-1 rounded-lg shadow-sm border border-gray-200 shrink-0 mt-0.5">
-                                            Q{item.index + 1}
-                                        </span>
-                                        <p className="font-semibold text-gray-800 leading-relaxed">
-                                            {item.question.question}
-                                        </p>
+                                <div className={`${meta.bg} px-6 py-4`}>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-start gap-3">
+                                            <span className="bg-white text-gray-600 font-bold text-sm px-2.5 py-1 rounded-lg shadow-sm border border-gray-200 shrink-0 mt-0.5">
+                                                Q{item.index + 1}
+                                            </span>
+                                            <p className="font-semibold text-gray-800 leading-relaxed">
+                                                {item.question.question}
+                                            </p>
+                                        </div>
+                                        <div className={`flex items-center gap-1.5 shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${meta.badgeBg}`}>
+                                            <Icon size={14} />
+                                            {meta.badge}
+                                        </div>
                                     </div>
-                                    <div className={`flex items-center gap-1.5 shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${meta.badgeBg}`}>
-                                        <Icon size={14} />
-                                        {meta.badge}
-                                    </div>
+                                    {item.question.imageUrl && (
+                                        <div className="mt-4 flex justify-center">
+                                            <img
+                                                src={item.question.imageUrl}
+                                                alt={`Question ${item.index + 1} image`}
+                                                className="max-w-full h-auto max-h-72 object-contain rounded-lg border shadow-sm"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Options */}
