@@ -74,6 +74,32 @@ const ExamManager = () => {
         const id = examToDelete;
 
         try {
+            // 0. Collect and delete images from storage bucket
+            const examToRemove = exams.find(e => e.id === id);
+            if (examToRemove?.questions?.length > 0) {
+                const imageFilenames = examToRemove.questions
+                    .filter(q => q.imageUrl)
+                    .map(q => {
+                        // imageUrl is a full public URL; extract just the filename (last segment)
+                        try {
+                            const url = new URL(q.imageUrl);
+                            return url.pathname.split('/').pop();
+                        } catch {
+                            return null;
+                        }
+                    })
+                    .filter(Boolean);
+
+                if (imageFilenames.length > 0) {
+                    const { error: storageError } = await supabase.storage
+                        .from('question-images')
+                        .remove(imageFilenames);
+                    if (storageError) {
+                        console.warn('Storage cleanup warning:', storageError.message);
+                    }
+                }
+            }
+
             // 1. Delete associated results from exam_results table to avoid foreign key constraint errors
             const { error: resultsDeleteError } = await supabase.from('exam_results').delete().eq('exam_id', id);
             if (resultsDeleteError) {
