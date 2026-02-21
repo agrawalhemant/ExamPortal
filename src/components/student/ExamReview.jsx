@@ -1,35 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, CheckCircle2, XCircle, MinusCircle, BookOpen, Trophy } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, XCircle, MinusCircle, Trophy } from 'lucide-react';
 import { generatePDF } from '../../utils/pdfGenerator';
 
-/**
- * ExamReview — Read-only post-exam review page.
- *
- * Router state shape (passed via navigate):
- *   { exam: {...}, result: {...} }
- *
- * exam.questions[i].options  — array of option strings
- * exam.questions[i].correctAnswer — the CORRECT option string (e.g. "Paris")
- *                               OR a numeric 0-based index (legacy support)
- * result.answers — either:
- *   { "1": { selectedOption: "Paris", status: "answered" }, ... }  (1-based, string values)
- *   OR { "0": 2, "1": 0, ... }  (0-based, numeric index values)
- */
 const ExamReview = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { exam, result } = location.state || {};
+    const questionRefs = useRef([]);
 
     if (!exam || !result) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                     <p className="text-gray-500 mb-4">No review data found.</p>
-                    <button
-                        onClick={() => navigate('/student/dashboard')}
-                        className="text-blue-600 hover:underline"
-                    >
+                    <button onClick={() => navigate('/student/dashboard')} className="text-blue-600 hover:underline">
                         ← Back to Dashboard
                     </button>
                 </div>
@@ -40,24 +25,14 @@ const ExamReview = () => {
     const questions = exam.questions || [];
     const rawAnswers = result.answers || {};
 
-    /**
-     * Normalise the answers map into a consistent format:
-     *   { [0-based index]: selectedOptionString | null }
-     * 
-     * Handles two storage formats:
-     *  A. { "1": { selectedOption: "Paris" }, ... }  — 1-based, object values
-     *  B. { "0": 2, "1": 0, ... }  — 0-based, numeric index values
-     */
+    // Normalise answers into { [0-based index]: selectedOptionString | null }
+    // Handles: { "1": { selectedOption: "Paris" } }  OR  { "0": 2 } (numeric index)
     const normalisedAnswers = useMemo(() => {
         const out = {};
         Object.entries(rawAnswers).forEach(([key, val]) => {
             const keyNum = Number(key);
             if (val && typeof val === 'object' && 'selectedOption' in val) {
-                // Format A: 1-based keys
-                out[keyNum - 1] = val.selectedOption ?? null;
-            } else if (typeof val === 'number') {
-                // Format B: 0-based keys, numeric index
-                out[keyNum] = val; // leave as numeric index; we'll handle below
+                out[keyNum - 1] = val.selectedOption ?? null; // 1-based → 0-based
             } else {
                 out[keyNum] = val ?? null;
             }
@@ -65,22 +40,14 @@ const ExamReview = () => {
         return out;
     }, [rawAnswers]);
 
-    /**
-     * Given a question and the normalised answer value, resolve to matching option index.
-     * correctAnswer is normalised to the option string.
-     */
     const resolveOption = (q, value) => {
         if (value === null || value === undefined) return null;
         const opts = q.options || [];
         if (typeof value === 'string') {
-            // Match by string equality
             const idx = opts.findIndex(o => String(o).trim() === String(value).trim());
             return idx >= 0 ? idx : null;
         }
-        if (typeof value === 'number') {
-            return value; // already an index
-        }
-        return null;
+        return typeof value === 'number' ? value : null;
     };
 
     const resolveCorrect = (q) => {
@@ -99,21 +66,16 @@ const ExamReview = () => {
             const rawVal = normalisedAnswers[idx];
             const selectedIdx = resolveOption(q, rawVal);
             const correctIdx = resolveCorrect(q);
-
             const wasAnswered = selectedIdx !== null;
             const isCorrect = wasAnswered && selectedIdx === correctIdx;
-            let status = 'skipped';
-            if (wasAnswered) status = isCorrect ? 'correct' : 'wrong';
-
+            const status = !wasAnswered ? 'skipped' : isCorrect ? 'correct' : 'wrong';
             return {
                 question: q,
                 index: idx,
                 selectedIdx,
                 correctIdx,
                 status,
-                marksPerQuestion: q.marksPerQuestion !== undefined
-                    ? q.marksPerQuestion
-                    : (exam.marks_per_question || 4),
+                marksPerQuestion: q.marksPerQuestion !== undefined ? q.marksPerQuestion : (exam.marks_per_question || 4),
             };
         });
     }, [questions, normalisedAnswers]);
@@ -121,52 +83,42 @@ const ExamReview = () => {
     const correctCount = reviewItems.filter(i => i.status === 'correct').length;
     const wrongCount = reviewItems.filter(i => i.status === 'wrong').length;
     const skippedCount = reviewItems.filter(i => i.status === 'skipped').length;
-    const totalMarks = result.total_marks ||
-        reviewItems.reduce((s, i) => s + i.marksPerQuestion, 0);
+    const totalMarks = result.total_marks || reviewItems.reduce((s, i) => s + i.marksPerQuestion, 0);
     const percentage = totalMarks > 0 ? Math.round((result.score / totalMarks) * 100) : 0;
 
-    const statusMeta = {
-        correct: {
-            Icon: CheckCircle2,
-            badge: 'Correct',
-            badgeBg: 'bg-green-100 text-green-700',
-            border: 'border-green-300',
-            bg: 'bg-green-50',
-        },
-        wrong: {
-            Icon: XCircle,
-            badge: 'Wrong',
-            badgeBg: 'bg-red-100 text-red-700',
-            border: 'border-red-300',
-            bg: 'bg-red-50',
-        },
-        skipped: {
-            Icon: MinusCircle,
-            badge: 'Skipped',
-            badgeBg: 'bg-gray-100 text-gray-500',
-            border: 'border-gray-200',
-            bg: 'bg-gray-50',
-        },
+    const scrollToQuestion = (idx) => {
+        questionRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const statusColors = {
+        correct: 'bg-green-500 text-white',
+        wrong: 'bg-red-500 text-white',
+        skipped: 'bg-gray-200 text-gray-600',
+    };
+
+    const cardMeta = {
+        correct: { border: 'border-green-300', headerBg: 'bg-green-50', badge: 'bg-green-100 text-green-700', Icon: CheckCircle2 },
+        wrong: { border: 'border-red-300', headerBg: 'bg-red-50', badge: 'bg-red-100 text-red-700', Icon: XCircle },
+        skipped: { border: 'border-gray-200', headerBg: 'bg-gray-50', badge: 'bg-gray-100 text-gray-500', Icon: MinusCircle },
     };
 
     const optLabel = (i) => ['A', 'B', 'C', 'D', 'E'][i] ?? String.fromCharCode(65 + i);
 
     return (
-        <div className="h-screen overflow-y-auto bg-gray-100">
-            {/* Top Bar */}
-            <header className="bg-white border-b shadow-sm sticky top-0 z-10">
-                <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+
+            {/* ── Top Bar ── */}
+            <header className="bg-white border-b shadow-sm shrink-0">
+                <div className="px-6 py-3 flex items-center justify-between">
                     <button
                         onClick={() => navigate('/student/dashboard')}
-                        className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors font-medium"
+                        className="flex items-center gap-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
                     >
                         <ArrowLeft size={20} /> Back to Dashboard
                     </button>
-
-                    <span className="font-bold text-gray-800 text-lg hidden sm:block truncate max-w-xs">
+                    <span className="font-bold text-gray-800 text-lg truncate hidden sm:block">
                         {exam.title} — Review
                     </span>
-
                     <button
                         onClick={() => generatePDF(questions, rawAnswers, result.score, totalMarks)}
                         className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm"
@@ -176,186 +128,193 @@ const ExamReview = () => {
                 </div>
             </header>
 
-            <main className="max-w-4xl mx-auto px-4 py-8">
-                {/* Score Summary Card */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-blue-100 p-3 rounded-xl">
-                            <Trophy className="text-blue-600 w-6 h-6" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-800">{exam.title}</h2>
-                            <p className="text-sm text-gray-500">Exam Review — Read Only</p>
-                        </div>
-                    </div>
+            {/* ── Body: Questions (left) + Sidebar (right) ── */}
+            <div className="flex flex-1 overflow-hidden">
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-                        <div className="text-center bg-blue-50 rounded-xl p-4">
-                            <p className="text-2xl font-black text-blue-600">
-                                {result.score}
-                                <span className="text-sm font-medium text-blue-400">/{totalMarks}</span>
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">Score</p>
-                        </div>
-                        <div className="text-center bg-green-50 rounded-xl p-4">
-                            <p className="text-2xl font-black text-green-600">{correctCount}</p>
-                            <p className="text-xs text-gray-500 mt-1">Correct</p>
-                        </div>
-                        <div className="text-center bg-red-50 rounded-xl p-4">
-                            <p className="text-2xl font-black text-red-500">{wrongCount}</p>
-                            <p className="text-xs text-gray-500 mt-1">Wrong</p>
-                        </div>
-                        <div className="text-center bg-gray-50 rounded-xl p-4">
-                            <p className="text-2xl font-black text-gray-400">{skippedCount}</p>
-                            <p className="text-xs text-gray-500 mt-1">Skipped</p>
-                        </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="mt-5">
-                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                            <span>Score Percentage</span>
-                            <span className="font-semibold">{percentage}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                                className={`h-2.5 rounded-full transition-all ${percentage >= 70
-                                    ? 'bg-green-500'
-                                    : percentage >= 40
-                                        ? 'bg-yellow-400'
-                                        : 'bg-red-500'
-                                    }`}
-                                style={{ width: `${percentage}%` }}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Questions */}
-                <div className="space-y-6">
+                {/* ── LEFT: Question List (scrollable) ── */}
+                <main className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
                     {reviewItems.map((item) => {
-                        const meta = statusMeta[item.status];
+                        const meta = cardMeta[item.status];
                         const { Icon } = meta;
                         const opts = item.question.options || [];
 
                         return (
                             <div
                                 key={item.index}
-                                className={`bg-white rounded-2xl shadow-sm border-2 ${meta.border} overflow-hidden`}
+                                ref={el => questionRefs.current[item.index] = el}
+                                className={`bg-white rounded-2xl border-2 ${meta.border} overflow-hidden shadow-sm`}
                             >
                                 {/* Question Header */}
-                                <div className={`${meta.bg} px-6 py-4`}>
-                                    <div className="flex items-start justify-between gap-4">
+                                <div className={`${meta.headerBg} px-5 py-4`}>
+                                    <div className="flex items-start justify-between gap-3">
                                         <div className="flex items-start gap-3">
-                                            <span className="bg-white text-gray-600 font-bold text-sm px-2.5 py-1 rounded-lg shadow-sm border border-gray-200 shrink-0 mt-0.5">
+                                            <span className="bg-white text-gray-600 text-sm font-bold px-2.5 py-1 rounded-lg border border-gray-200 shadow-sm shrink-0 mt-0.5">
                                                 Q{item.index + 1}
                                             </span>
                                             <p className="font-semibold text-gray-800 leading-relaxed">
                                                 {item.question.question}
                                             </p>
                                         </div>
-                                        <div className={`flex items-center gap-1.5 shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${meta.badgeBg}`}>
-                                            <Icon size={14} />
-                                            {meta.badge}
-                                        </div>
+                                        <span className={`flex items-center gap-1.5 shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${meta.badge}`}>
+                                            <Icon size={13} /> {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                                        </span>
                                     </div>
+
+                                    {/* Question Image */}
                                     {item.question.imageUrl && (
-                                        <div className="mt-4 flex justify-center">
+                                        <div className="mt-4 flex justify-start">
                                             <img
                                                 src={item.question.imageUrl}
-                                                alt={`Question ${item.index + 1} image`}
-                                                className="max-w-full h-auto max-h-72 object-contain rounded-lg border shadow-sm"
+                                                alt={`Q${item.index + 1}`}
+                                                className="max-w-sm h-auto max-h-64 object-contain rounded-lg border shadow-sm"
                                             />
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Options */}
-                                <div className="px-6 py-4 space-y-2.5">
+                                <div className="px-5 py-4 space-y-2">
                                     {opts.map((opt, optIdx) => {
                                         const isSelected = item.selectedIdx === optIdx;
                                         const isCorrectOpt = item.correctIdx === optIdx;
 
-                                        let optClass = 'border-gray-200 bg-gray-50 text-gray-700';
-                                        let labelClass = 'bg-gray-200 text-gray-600';
-                                        let rightIcon = null;
+                                        let rowCls = 'border-gray-200 bg-gray-50 text-gray-700';
+                                        let lblCls = 'bg-gray-200 text-gray-600';
+                                        let icon = null;
 
                                         if (isCorrectOpt) {
-                                            optClass = 'border-green-400 bg-green-50 text-green-800';
-                                            labelClass = 'bg-green-500 text-white';
-                                            rightIcon = (
-                                                <CheckCircle2 size={18} className="text-green-600 shrink-0" />
-                                            );
+                                            rowCls = 'border-green-400 bg-green-50 text-green-800';
+                                            lblCls = 'bg-green-500 text-white';
+                                            icon = <CheckCircle2 size={17} className="text-green-600 shrink-0" />;
                                         }
                                         if (isSelected && !isCorrectOpt) {
-                                            optClass = 'border-red-400 bg-red-50 text-red-800';
-                                            labelClass = 'bg-red-500 text-white';
-                                            rightIcon = (
-                                                <XCircle size={18} className="text-red-500 shrink-0" />
-                                            );
+                                            rowCls = 'border-red-400 bg-red-50 text-red-800';
+                                            lblCls = 'bg-red-500 text-white';
+                                            icon = <XCircle size={17} className="text-red-500 shrink-0" />;
+                                        }
+                                        if (isSelected && isCorrectOpt) {
+                                            icon = <CheckCircle2 size={17} className="text-green-600 shrink-0" />;
                                         }
 
                                         return (
-                                            <div
-                                                key={optIdx}
-                                                className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 ${optClass}`}
-                                            >
-                                                <span className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${labelClass}`}>
+                                            <div key={optIdx} className={`flex items-center gap-3 rounded-xl border-2 px-4 py-2.5 ${rowCls}`}>
+                                                <span className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${lblCls}`}>
                                                     {optLabel(optIdx)}
                                                 </span>
-                                                <span className="flex-1 text-sm leading-snug">{opt}</span>
-                                                {rightIcon}
-                                                {isSelected && isCorrectOpt && (
-                                                    <CheckCircle2 size={18} className="text-green-600 shrink-0" />
-                                                )}
+                                                <span className="flex-1 text-sm">{opt}</span>
+                                                {icon}
                                             </div>
                                         );
                                     })}
 
                                     {item.status === 'skipped' && (
                                         <p className="text-xs text-gray-400 italic mt-2 flex items-center gap-1.5">
-                                            <MinusCircle size={13} />
-                                            You did not answer this question.{' '}
+                                            <MinusCircle size={12} />
+                                            Not answered.{' '}
                                             <span className="text-green-600 font-semibold not-italic">
-                                                Correct answer: {optLabel(item.correctIdx)}
+                                                Correct: {optLabel(item.correctIdx)}
                                             </span>
                                         </p>
                                     )}
                                 </div>
 
                                 {/* Marks footer */}
-                                <div className="px-6 py-2 border-t border-gray-100 text-xs text-gray-400 flex justify-end">
-                                    {item.status === 'correct' ? (
-                                        <span className="text-green-600 font-semibold">
-                                            +{item.marksPerQuestion} marks
-                                        </span>
-                                    ) : item.status === 'wrong' ? (
-                                        <span className="text-red-500 font-semibold">0 marks</span>
-                                    ) : (
-                                        <span>0 marks (skipped)</span>
-                                    )}
+                                <div className="px-5 py-2 border-t border-gray-100 text-xs flex justify-end">
+                                    {item.status === 'correct'
+                                        ? <span className="text-green-600 font-semibold">+{item.marksPerQuestion} marks</span>
+                                        : item.status === 'wrong'
+                                            ? <span className="text-red-500 font-semibold">0 marks</span>
+                                            : <span className="text-gray-400">0 marks (skipped)</span>
+                                    }
                                 </div>
                             </div>
                         );
                     })}
-                </div>
 
-                {/* Bottom Actions */}
-                <div className="flex flex-col sm:flex-row gap-4 mt-10 justify-between">
-                    <button
-                        onClick={() => navigate('/student/dashboard')}
-                        className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition font-medium"
-                    >
-                        <ArrowLeft size={18} /> Back to Dashboard
-                    </button>
-                    <button
-                        onClick={() => generatePDF(questions, rawAnswers, result.score, totalMarks)}
-                        className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium"
-                    >
-                        <Download size={18} /> Download PDF Report
-                    </button>
-                </div>
-            </main>
+                    {/* Bottom action */}
+                    <div className="pb-6 flex justify-start">
+                        <button
+                            onClick={() => navigate('/student/dashboard')}
+                            className="flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition font-medium text-sm"
+                        >
+                            <ArrowLeft size={16} /> Back to Dashboard
+                        </button>
+                    </div>
+                </main>
+
+                {/* ── RIGHT SIDEBAR (sticky) ── */}
+                <aside className="w-72 shrink-0 border-l bg-white overflow-y-auto flex flex-col gap-4 px-4 py-5">
+
+                    {/* Score Summary */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Trophy size={16} className="text-blue-600" />
+                            <h3 className="font-bold text-gray-700 text-sm">Score Summary</h3>
+                        </div>
+
+                        <div className="bg-blue-50 rounded-xl px-4 py-3 mb-3 text-center">
+                            <p className="text-3xl font-black text-blue-600">
+                                {result.score}
+                                <span className="text-base font-semibold text-blue-400">/{totalMarks}</span>
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">{percentage}% score</p>
+                            <div className="mt-2 w-full bg-blue-100 rounded-full h-1.5">
+                                <div
+                                    className={`h-1.5 rounded-full ${percentage >= 70 ? 'bg-green-500' : percentage >= 40 ? 'bg-yellow-400' : 'bg-red-500'}`}
+                                    style={{ width: `${percentage}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div className="bg-green-50 rounded-lg py-2">
+                                <p className="text-lg font-black text-green-600">{correctCount}</p>
+                                <p className="text-gray-500">Correct</p>
+                            </div>
+                            <div className="bg-red-50 rounded-lg py-2">
+                                <p className="text-lg font-black text-red-500">{wrongCount}</p>
+                                <p className="text-gray-500">Wrong</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg py-2">
+                                <p className="text-lg font-black text-gray-400">{skippedCount}</p>
+                                <p className="text-gray-500">Skipped</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                        <h3 className="font-bold text-gray-700 text-sm mb-3">Jump to Question</h3>
+                        <div className="grid grid-cols-5 gap-1.5">
+                            {reviewItems.map((item) => (
+                                <button
+                                    key={item.index}
+                                    onClick={() => scrollToQuestion(item.index)}
+                                    title={`Q${item.index + 1} — ${item.status}`}
+                                    className={`w-full aspect-square flex items-center justify-center text-xs font-bold rounded-lg transition hover:opacity-80 ${statusColors[item.status]}`}
+                                >
+                                    {item.index + 1}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Legend */}
+                        <div className="mt-4 space-y-1.5 text-xs text-gray-500">
+                            <div className="flex items-center gap-2">
+                                <span className="w-4 h-4 rounded bg-green-500 inline-block shrink-0" />
+                                Correct
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-4 h-4 rounded bg-red-500 inline-block shrink-0" />
+                                Wrong
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-4 h-4 rounded bg-gray-200 inline-block shrink-0" />
+                                Skipped
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
     );
 };
