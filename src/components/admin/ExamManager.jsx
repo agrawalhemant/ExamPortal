@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Trash2, Edit, Plus, Save, X, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, Trash2, Edit, Plus, Save, X, AlertCircle, Loader2, Search } from 'lucide-react';
 import { supabase } from '../../supabase/client';
 import { useAuth } from '../../context/AuthContext';
 import JSZip from 'jszip';
@@ -17,6 +17,7 @@ const ExamManager = () => {
     const [message, setMessage] = useState('');
     const [uploadProgress, setUploadProgress] = useState({ isUploading: false, current: 0, total: 0, text: '' });
     const [examToDelete, setExamToDelete] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const { user } = useAuth();
 
     useEffect(() => {
@@ -496,13 +497,28 @@ const ExamManager = () => {
             </div>
 
             <div className="flex-grow overflow-y-auto">
+                <div className="mb-6 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Search exams by title..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none shadow-sm"
+                    />
+                </div>
+
                 {exams.length === 0 ? (
                     <div className="text-center text-gray-500 py-10">
                         No exams found. Create one to get started.
                     </div>
+                ) : exams.filter(exam => exam.title?.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+                    <div className="text-center text-gray-500 py-10">
+                        No exams match your search.
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-4">
-                        {exams.map(exam => (
+                        {exams.filter(exam => exam.title?.toLowerCase().includes(searchTerm.toLowerCase())).map(exam => (
                             <div key={exam.id} className="border rounded-lg p-4 flex justify-between items-center hover:shadow-md transition">
                                 <div>
                                     <h3 className="font-semibold text-lg">{exam.title}</h3>
