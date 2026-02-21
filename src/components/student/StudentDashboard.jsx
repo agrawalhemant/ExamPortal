@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Play, Clock, CheckCircle, AlertCircle, RefreshCw, User, Lock, X, Save, Search } from 'lucide-react';
+import { LogOut, Play, Clock, CheckCircle, AlertCircle, RefreshCw, User, Lock, X, Save, Search, Download } from 'lucide-react';
 import { supabase } from '../../supabase/client';
+import { generatePDF } from '../../utils/pdfGenerator';
 import { useSearchParams } from 'react-router-dom';
 
 const StudentDashboard = ({ student, onStartExam, onLogout }) => {
@@ -121,7 +122,9 @@ const StudentDashboard = ({ student, onStartExam, onLogout }) => {
     const getScore = (examId) => {
         const result = previousResults.find(r => r.exam_id === examId);
         return result ? result.score : null;
-    }
+    };
+
+    const getResult = (examId) => previousResults.find(r => r.exam_id === examId) || null;
 
     return (
         <div className="min-h-screen bg-gray-50 relative">
@@ -221,14 +224,25 @@ const StudentDashboard = ({ student, onStartExam, onLogout }) => {
                                                         >
                                                             <Play size={18} /> Start Test
                                                         </button>
-                                                    ) : (
-                                                        <button
-                                                            disabled
-                                                            className="w-full bg-gray-100 text-gray-400 py-3 rounded-lg cursor-not-allowed font-medium"
-                                                        >
-                                                            Submitted
-                                                        </button>
-                                                    )}
+                                                    ) : (() => {
+                                                        const result = getResult(exam.id);
+                                                        const canDownload = result && exam.questions && result.answers;
+                                                        return (
+                                                            <div className="flex flex-col gap-2">
+                                                                <div className="w-full flex items-center justify-center gap-2 bg-green-50 text-green-700 py-2 rounded-lg font-medium text-sm border border-green-200">
+                                                                    <CheckCircle size={16} /> Submitted
+                                                                </div>
+                                                                {canDownload && (
+                                                                    <button
+                                                                        onClick={() => generatePDF(exam.questions, result.answers, result.score, result.total_marks)}
+                                                                        className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition font-semibold text-sm"
+                                                                    >
+                                                                        <Download size={16} /> Download Report
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                         );
