@@ -2,10 +2,11 @@ import React, { useMemo } from 'react';
 import { useExam } from '../context/ExamContext';
 import { generatePDF } from '../utils/pdfGenerator';
 import { Download } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const ResultPage = () => {
-    const { questions, userResponses, examConfig } = useExam(); // Added examConfig here
+    const { questions, userResponses, examConfig } = useExam();
+    const navigate = useNavigate();
 
     const { score, totalMarks, correctCount, wrongCount, attemptedCount } = useMemo(() => {
         let score = 0;
@@ -68,12 +69,12 @@ const ResultPage = () => {
                         Download Result Report (PDF)
                     </button>
 
-                    <Link
-                        to="/student/dashboard"
+                    <button
+                        onClick={() => window.opener ? window.close() : navigate('/student/dashboard')}
                         className="flex items-center justify-center w-full py-3 bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors font-semibold shadow-sm"
                     >
                         Return to All Available Exams
-                    </Link>
+                    </button>
                 </div>
             </div>
         </div>

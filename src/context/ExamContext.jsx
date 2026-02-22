@@ -30,23 +30,28 @@ export const ExamProvider = ({ children }) => {
         if (savedProgress) {
             try {
                 const progress = JSON.parse(savedProgress);
-                // We still need the exam definition (questions) from Supabase
-                // unless we cached strictly the questions too. 
-                // Let's fetch the latest exam definition to be safe.
-                const { data: exam, error } = await supabase.from('exams').select('*').eq('id', examId).single();
 
-                if (exam && !error) {
-                    setQuestions(exam.questions || []);
-                    setExamConfig(exam);
+                // If exam was already submitted, discard stale localStorage and do a fresh load
+                if (progress.examStatus === 'submitted') {
+                    localStorage.removeItem(`exam_progress_${examId}`);
+                    // Fall through to fresh Supabase load below
+                } else {
+                    // We still need the exam definition (questions) from Supabase
+                    const { data: exam, error } = await supabase.from('exams').select('*').eq('id', examId).single();
 
-                    // Restore dynamic state from Sync/Local
-                    setUserResponses(progress.userResponses);
-                    setTimeLeft(progress.timeLeft);
-                    setCurrentQuestionIndex(progress.currentQuestionIndex);
-                    setViolations(progress.violations);
-                    setExamStatus(progress.examStatus);
-                    setIsExamActive(progress.examStatus === 'active');
-                    return;
+                    if (exam && !error) {
+                        setQuestions(exam.questions || []);
+                        setExamConfig(exam);
+
+                        // Restore dynamic state from Sync/Local
+                        setUserResponses(progress.userResponses);
+                        setTimeLeft(progress.timeLeft);
+                        setCurrentQuestionIndex(progress.currentQuestionIndex);
+                        setViolations(progress.violations);
+                        setExamStatus(progress.examStatus);
+                        setIsExamActive(progress.examStatus === 'active');
+                        return;
+                    }
                 }
             } catch (e) {
                 console.error("Failed to load saved progress", e);
