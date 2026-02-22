@@ -43,7 +43,7 @@ const QuestionPalette = () => {
 
     return (
         <div className="bg-white shadow-md rounded-lg p-4 h-full flex flex-col">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Questions ({questions.length})</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Total Questions: {questions.length}</h3>
 
             <div className="grid grid-cols-4 gap-3 p-2 overflow-y-scroll flex-grow content-start">
                 {questions.map((q, index) => {
